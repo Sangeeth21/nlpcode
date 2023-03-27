@@ -1,0 +1,141 @@
+
+
+import asyncio
+from fastapi import FastAPI
+from firebase_admin import credentials, storage, initialize_app
+from queue import Queue
+import PyPDF2
+import os
+
+app = FastAPI()
+
+cred = credentials.Certificate("./smarthire-285b9-firebase-adminsdk-frtth-fee212ac40.json")
+initialize_app(cred, {"storageBucket": "smarthire-285b9.appspot.com"})
+bucket = storage.bucket()
+
+async def download_files():
+    queue = Queue()
+    blobs = bucket.list_blobs()
+
+    for blob in blobs:
+        queue.put(blob)
+
+    while not queue.empty():
+        blob = queue.get()
+        destination_path = f"./{blob.name}"
+        blob.download_to_filename(destination_path)
+
+    return {"message": f"Documents downloaded from Firebase Storage and saved to {destination_path}."}
+
+async def extract_text_from_pdf(filename):
+    with open(filename, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text()
+        return text
+    
+async def write_text_to_file(text, filename):
+    with open(filename, 'w', encoding="utf-8") as file:
+        file.write(text)
+
+# main function to extract text from files and write to a file
+async def extract_text_and_write_to_file(input_dir, output_dir):
+    for filename in os.listdir(input_dir):
+        if filename.endswith('.pdf'):
+            text = await extract_text_from_pdf(os.path.join(input_dir, filename))
+        # elif filename.endswith('.docx'):
+        #     text = extract_text_from_docx(os.path.join(input_dir, filename))
+        else:
+            continue
+        await write_text_to_file(text, os.path.join(output_dir, os.path.splitext(filename)[0] + '.txt'))
+
+# example usage
+input_dir = './files'
+output_dir = './output_dir'
+
+@app.get("/")
+async def main():
+    while True:
+        await download_files()
+        await extract_text_and_write_to_file(input_dir, output_dir)
+        await asyncio.sleep(5)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+        
+----------------------------------------------------------------------->
+
+
+
+
+
+import asyncio
+from fastapi import FastAPI
+from firebase_admin import credentials, storage, initialize_app
+from queue import Queue
+import PyPDF2
+import os
+
+app = FastAPI()
+
+cred = credentials.Certificate("./smarthire-285b9-firebase-adminsdk-frtth-fee212ac40.json")
+initialize_app(cred, {"storageBucket": "smarthire-285b9.appspot.com"})
+bucket = storage.bucket()
+
+async def download_files():
+    queue = Queue()
+    blobs = bucket.list_blobs()
+
+    for blob in blobs:
+        queue.put(blob)
+
+    while not queue.empty():
+        blob = queue.get()
+        destination_path = f"./{blob.name}"
+        blob.download_to_filename(destination_path)
+
+    return {"message": f"Documents downloaded from Firebase Storage and saved to {destination_path}."}
+
+async def extract_text_from_pdf(filename):
+    with open(filename, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text()
+        return text
+    
+async def write_text_to_file(text, filename):
+    with open(filename, 'w', encoding="utf-8") as file:
+        file.write(text)
+
+# main function to extract text from files and write to a file
+async def extract_text_and_write_to_file(input_dir, output_dir):
+    for filename in os.listdir(input_dir):
+        if filename.endswith('.pdf'):
+            text = await extract_text_from_pdf(os.path.join(input_dir, filename))
+        # elif filename.endswith('.docx'):
+        #     text = extract_text_from_docx(os.path.join(input_dir, filename))
+        else:
+            continue
+        await write_text_to_file(text, os.path.join(output_dir, os.path.splitext(filename)[0] + '.txt'))
+
+# example usage
+input_dir = './files'
+output_dir = './output_dir'
+
+@app.get("/")
+async def main():
+    while True:
+        await download_files()
+        await extract_text_and_write_to_file(input_dir, output_dir)
+        await asyncio.sleep(5)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+        
+
+
+
