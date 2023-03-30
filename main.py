@@ -9,6 +9,7 @@ from pdfminer.high_level import extract_text
 import os
 import re
 import nltk
+import requests
 import spacy
 import en_core_web_sm
 from spacy.matcher import Matcher
@@ -17,8 +18,6 @@ from nltk.corpus import stopwords
 import pandas as pd
 import spacy
 nlp = spacy.load('en_core_web_sm') 
-
-
 
 
 
@@ -197,3 +196,22 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+@app.get("/{username}")
+async def get_repos(username: str):
+    headers = {"Authorization": f"Bearer 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"}
+    response = requests.get(f"https://api.github.com/users/{username}", headers=headers)
+    responses = requests.get(f"https://api.github.com/users/{username}/repos", headers=headers)
+
+    if response.status_code == 200:
+        output_dir='./output'
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.splitext(username)[0] + ".json"
+        output_path = os.path.join(output_dir, output_file)
+        with open(output_path, 'w') as f:
+            json.dump(response.json(), f, indent=4)  # Modify this line
+            json.dump(responses.json(), f, indent=4)  # Modify this line
+        print(f"{username} saved to {output_path}")
+        return {"message": f"{username} fetched from github and saved to {output_path} succesfully"}
+    else:
+        print("Error:", response.status_code)
