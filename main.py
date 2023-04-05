@@ -274,15 +274,26 @@ async def postgre():
     print("Data insertion complete!")
 
 
-  
 @app.get("/")
 async def main():
+    last_files = set()
     while True:
         await download_files()
-        await process()
-        await matching()
-        await postgre()
+        current_files = set(os.listdir('./files'))
+        new_files = current_files - last_files
+        if new_files:
+            await process()
+            await matching()
+            await postgre()
+            last_files = current_files
         await asyncio.sleep(5)
+# async def main():
+#     while True:
+#         await download_files()
+#         await process()
+#         await matching()
+#         await postgre()
+#         await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
