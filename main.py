@@ -18,6 +18,7 @@ from nltk.corpus import stopwords
 import pandas as pd
 import spacy
 nlp = spacy.load('en_core_web_sm') 
+import psycopg2
 
 
 
@@ -186,32 +187,122 @@ async def process():
             elif file_path.lower().endswith('.pdf'):
                 textinput = pdftotext(file_path)
                 await exrt(filename,textinput)
+
+async def matching():
+ with open('./HR/hr.json', 'r') as f:
+    # Load the contents of the file as a string
+    json_string = f.read()
+
+# Parse the JSON string into a dictionary
+ hr_dict = json.loads(json_string)
+
+
+# {"Name": "Aman Thankachan", "Qualification": ["BTech", "XII", "CBSE", "X"], "Skills": ["SQL"], "Mobile Number": "918076636258", "Mail id": ["amanthankachan@gmail.com", "principal@cectl.ac.in", "priya@cectl.ac.in"]}
+# {"Qualification": ["BTECH"], "Skills": ["HTML","css","python"]}
+ folder_path = "./output_dir"
+ for filename in os.listdir(folder_path):
+    score = 0
+    if filename.endswith(".json"):
+        # Load the JSON data from the file
+        filepath = os.path.join(folder_path, filename)
+        with open(filepath) as f:
+            json_string = f.read()
+        candidate_dict = json.loads(json_string)
+        for key in hr_dict:
+            if key in candidate_dict:
+                for element in candidate_dict[key]:
+                    if element.upper() in hr_dict[key]:
+                        score += 1
+        candidate_dict["Score"] = score
+
+
+    output_dir='./output_dir'
+    output_file = os.path.splitext(filename)[0] + ".json"
+    output_path = os.path.join(output_dir, output_file)
+    with open(output_path, 'w') as f:
+        json.dump(candidate_dict, f)
+
+
+
+
+
+
+
+
+
+
+async def postgre():
+    conn = psycopg2.connect(host="localhost", database="postgres", user="postgres", password="sangeeth")
+
+# Open a cursor to execute SQL commands
+    cur = conn.cursor()
+
+# Loop through each JSON file in the folder
+    folder_path = "./output_dir"
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".json"):
+        # Load the JSON data from the file
+            filepath = os.path.join(folder_path, filename)
+            with open(filepath) as f:
+                data = json.load(f)
+        
+        # Extract the relevant key-value pairs
+            name = data.get("Name")
+            qualifications = data.get("Qualification")
+            skills = data.get("Skills")
+            mobile_number = data.get("Mobile Number")
+            mail_ids = data.get("Mail id")
+            scores = data.get("Score")
+        
+        # Check if a record with the same name or mobile number already exists
+            cur.execute("SELECT * FROM shire WHERE name=%s OR mobile_number=%s", (name, mobile_number))
+            existing_record = cur.fetchone()
+            if existing_record:
+                print(f"Skipping {filename} as record already exists in the database.")
+                continue
+        
+        # Insert the data into the PostgreSQL table
+            cur.execute("INSERT INTO shire (name, qualifications, skills, mobile_number, mail_ids, scores) VALUES (%s, %s, %s, %s, %s, %s)", (name, qualifications, skills, mobile_number, mail_ids,scores))
+            print(f"Inserted {filename} into the database.")
+        
+# Commit the changes to the database
+    conn.commit()
+
+# Close the cursor and database connection
+    cur.close()
+    conn.close()
+    print("Data insertion complete!")
+
+
   
 @app.get("/")
 async def main():
     while True:
         await download_files()
         await process()
+        await matching()
+        await postgre()
         await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
 
-@app.get("/{username}")
+@app.get("/repos/{username}")
 async def get_repos(username: str):
-    headers = {"Authorization": f"Bearer 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"}
+    token = "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"
+    headers = {"Authorization": f"{token}"}
     response = requests.get(f"https://api.github.com/users/{username}", headers=headers)
     responses = requests.get(f"https://api.github.com/users/{username}/repos", headers=headers)
 
-    if response.status_code == 200:
+    if response.status_code == 200 and responses.status_code == 200:
         output_dir='./output'
         os.makedirs(output_dir, exist_ok=True)
         output_file = os.path.splitext(username)[0] + ".json"
         output_path = os.path.join(output_dir, output_file)
+        data = {"user_info": response.json(), "repos": responses.json()}
         with open(output_path, 'w') as f:
-            json.dump(response.json(), f, indent=4)  # Modify this line
-            json.dump(responses.json(), f, indent=4)  # Modify this line
+            json.dump(data, f, indent=4)
         print(f"{username} saved to {output_path}")
-        return {"message": f"{username} fetched from github and saved to {output_path} succesfully"}
+        return {"message": f"{username} fetched from github and saved to {output_path} successfully"}
     else:
-        print("Error:", response.status_code)
+        print("Error:", response.status_code, responses.status_code)

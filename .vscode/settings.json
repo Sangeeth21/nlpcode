@@ -1,0 +1,3 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/auth/firebase-auth-ui/linux"
+}
