@@ -154,12 +154,42 @@ async def exrt(filename,textinput):
     #print('Mail id: ',extract_email_addresses(textinput))
     mail=extract_email_addresses(textinput)
 
+    def extract_linkedin(string):
+        linkedin_pattern = r"linkedin\.com\/in\/\w+[0-9-_a-zA-Z]+\/?"
+        linkedin_url = re.findall(linkedin_pattern,string)
+        return linkedin_url
+    lin=extract_linkedin(textinput)
+
+
+
+    def extract_github(string):
+        github_pattern_1 = r"github\.com\/\w+[0-9-_a-zA-Z]+\/?"
+        github_pattern_2 = r"\w+[0-9-_a-zA-Z]\s\(+github\.com\)?"
+        github_pattern_3 = r"\w+\s+\(github\.com\)"
+    
+        if re.search(github_pattern_1, string):
+            github_url = re.findall(github_pattern_1, string)
+            return github_url
+        elif re.search(github_pattern_2, string):
+            github_url = re.findall(github_pattern_2, string)
+            return github_url
+        elif re.search(github_pattern_3, string):
+            github_url = re.findall(github_pattern_3, string)
+            return github_url
+        else:
+            return None
+
+    git=extract_github(textinput)
+    
+
     data = {
         "Name": name,
         "Qualification": qualif,
         "Skills":skill,
         "Mobile Number": mob,
-        "Mail id":mail
+        "Mail id":mail,
+        "Linkedin":lin,
+        "Github":git
     }
 
     output_dir='./output_dir'
@@ -175,6 +205,10 @@ def pdftotext(filename):
     return text
 
 input_dir = './files'
+input_dir1='./jr_engineer'
+input_dir2='./senior_engineer'
+
+
 
 
 
@@ -188,6 +222,32 @@ async def process():
                 textinput = pdftotext(file_path)
                 await exrt(filename,textinput)
 
+async def process1():
+    for filename in os.listdir(input_dir1):
+        file_path = os.path.join(input_dir1, filename)
+        if os.path.isfile(file_path):
+            if file_path.lower().endswith(('.png', '.docx')):
+                print(f"{filename} is not supported")
+            elif file_path.lower().endswith('.pdf'):
+                textinput = pdftotext(file_path)
+                await exrt(filename,textinput)
+
+async def process2():
+    for filename in os.listdir(input_dir2):
+        file_path = os.path.join(input_dir2, filename)
+        if os.path.isfile(file_path):
+            if file_path.lower().endswith(('.png', '.docx')):
+                print(f"{filename} is not supported")
+            elif file_path.lower().endswith('.pdf'):
+                textinput = pdftotext(file_path)
+                await exrt(filename,textinput)
+
+
+
+
+
+
+
 async def matching():
  with open('./HR/hr.json', 'r') as f:
     # Load the contents of the file as a string
@@ -197,8 +257,6 @@ async def matching():
  hr_dict = json.loads(json_string)
 
 
-# {"Name": "Aman Thankachan", "Qualification": ["BTech", "XII", "CBSE", "X"], "Skills": ["SQL"], "Mobile Number": "918076636258", "Mail id": ["amanthankachan@gmail.com", "principal@cectl.ac.in", "priya@cectl.ac.in"]}
-# {"Qualification": ["BTECH"], "Skills": ["HTML","css","python"]}
  folder_path = "./output_dir"
  for filename in os.listdir(folder_path):
     score = 0
@@ -225,9 +283,30 @@ async def matching():
 
 
 
-
-
-
+async def gitfetch():
+    folder_path = "./output_dir"
+    results = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".json"):
+            # Load the JSON data from the file
+            filepath = os.path.join(folder_path, filename)
+            with open(filepath) as f:
+                json_string = f.read()
+            git_data = json.loads(json_string)
+            if git_data.get("Github"):  # use get() method to avoid NoneType error
+                github_url = git_data["Github"][0]
+                if "(" in github_url and ")" in github_url:
+                    # Extract username from {username} (github.com) format
+                    github_username = github_url.split("(")[0].strip()
+                else:
+                    github_username = github_url.split("/")[-1]
+                url = "http://localhost:5000/repos/{}".format(github_username)
+                response = requests.get(url)
+                if response.status_code == 200:
+                    results.append(response.json())
+                else:
+                    results.append({"message": "Error fetching data from Flask app"})
+    return results
 
 
 
@@ -252,7 +331,10 @@ async def postgre():
             skills = data.get("Skills")
             mobile_number = data.get("Mobile Number")
             mail_ids = data.get("Mail id")
+            github = data.get("Github")
+            linkedin = data.get("Linkedin")            
             scores = data.get("Score")
+
         
         # Check if a record with the same name or mobile number already exists
             cur.execute("SELECT * FROM shire WHERE name=%s OR mobile_number=%s", (name, mobile_number))
@@ -262,7 +344,7 @@ async def postgre():
                 continue
         
         # Insert the data into the PostgreSQL table
-            cur.execute("INSERT INTO shire (name, qualifications, skills, mobile_number, mail_ids, scores) VALUES (%s, %s, %s, %s, %s, %s)", (name, qualifications, skills, mobile_number, mail_ids,scores))
+            cur.execute("INSERT INTO shire (name, qualifications, skills, mobile_number, mail_ids,github,linkedin,scores) VALUES (%s, %s, %s, %s, %s,%s,%s, %s)" , (name, qualifications, skills, mobile_number, mail_ids,github,linkedin,scores))
             print(f"Inserted {filename} into the database.")
         
 # Commit the changes to the database
@@ -274,46 +356,29 @@ async def postgre():
     print("Data insertion complete!")
 
 
+
+
+
+
+
 @app.get("/")
 async def main():
-    last_files = set()
+    folders_to_check = ["./senior_engineer", "./jr_engineer","./files"]
+    last_files = {folder: set() for folder in folders_to_check}
     while True:
-        await download_files()
-        current_files = set(os.listdir('./files'))
-        new_files = current_files - last_files
-        if new_files:
-            await process()
-            await matching()
-            await postgre()
-            last_files = current_files
+        for folder in folders_to_check:
+            await download_files()
+            current_files = set(os.listdir(folder))
+            new_files = current_files - last_files[folder]
+            if new_files:
+                await process()
+                await process1()
+                await process2()
+                await matching()
+                await gitfetch()
+                await postgre()
+                last_files[folder] = current_files
         await asyncio.sleep(5)
-# async def main():
-#     while True:
-#         await download_files()
-#         await process()
-#         await matching()
-#         await postgre()
-#         await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-@app.get("/repos/{username}")
-async def get_repos(username: str):
-    token = "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"
-    headers = {"Authorization": f"{token}"}
-    response = requests.get(f"https://api.github.com/users/{username}", headers=headers)
-    responses = requests.get(f"https://api.github.com/users/{username}/repos", headers=headers)
-
-    if response.status_code == 200 and responses.status_code == 200:
-        output_dir='./output'
-        os.makedirs(output_dir, exist_ok=True)
-        output_file = os.path.splitext(username)[0] + ".json"
-        output_path = os.path.join(output_dir, output_file)
-        data = {"user_info": response.json(), "repos": responses.json()}
-        with open(output_path, 'w') as f:
-            json.dump(data, f, indent=4)
-        print(f"{username} saved to {output_path}")
-        return {"message": f"{username} fetched from github and saved to {output_path} successfully"}
-    else:
-        print("Error:", response.status_code, responses.status_code)

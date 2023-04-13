@@ -1,0 +1,4 @@
+INSERT INTO shire VALUES (1, 'ABDULLA HASHIM', '['BTECH', 'XII', 'X', 'CBSE']', '['FIREBASE', 'C']', '918089108752', '['abdullaibnhashim@gmail.com', 'abdullaibnhashim@gmail.com', 'principal@cectl.ac.in', 'priya@cectl.ac.in']', 1);
+INSERT INTO shire VALUES (2, 'Skilled Computer', '['BTECH', 'XII', 'X']', '['C', 'C++', 'HTML', 'SQL']', '91952643787', '['angelmaryandrews17@gmail.com', 'angelmaryandrews17@gmail.com', 'principal@cectl.ac.in', 'priya@cectl.ac.in']', 2);
+INSERT INTO shire VALUES (3, 'ANOOB SURESH', '['BTECH', 'XII', 'X']', '['C++', 'C', 'HTML']', '918714320264', '['Anoobsuresh04@gmail.com', 'Anoobsuresh04@gmail.com', 'principal@cectl.ac.in', 'hod.eee@cectl.ac.in']', 2);
+INSERT INTO shire VALUES (4, 'ACADEMIC DETAILS', '['BTECH', 'XII', 'X', 'CBSE']', '['HTML', 'CSS', 'FIREBASE', 'C']', '91623871240', '['vishnusangeeth21@gmail.com', 'vishnusangeeth21@gmail.com', 'principal@cectl.ac.in', 'priya@cectl.ac.in']', 3);
