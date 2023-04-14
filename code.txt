@@ -1,24 +1,9 @@
-from fastapi import FastAPI
-from firebase_admin import credentials, storage, initialize_app
-from queue import Queue
-
-app = FastAPI()
-
-cred = credentials.Certificate("./smarthire-285b9-firebase-adminsdk-frtth-fee212ac40.json")
-initialize_app(cred, {"storageBucket": "smarthire-285b9.appspot.com"})
-bucket = storage.bucket()
-
-@app.get("/")
-async def download_files():
-    queue = Queue()
-    blobs = bucket.list_blobs()
-
-    for blob in blobs:
-        queue.put(blob)
-
-    while not queue.empty():
-        blob = queue.get()
-        destination_path = f"./{blob.name}"
-        blob.download_to_filename(destination_path)
-
-    return {"message": f"Documents downloaded from Firebase Storage and saved to {destination_path}."}
+async def process():
+    for filename in os.listdir(input_dir):
+        file_path = os.path.join(input_dir, filename)
+        if os.path.isfile(file_path):
+            if file_path.lower().endswith(('.png', '.docx')):
+                print(f"{filename} is not supported")
+            elif file_path.lower().endswith('.pdf'):
+                textinput = pdftotext(file_path)
+                await exrt(filename,textinput)

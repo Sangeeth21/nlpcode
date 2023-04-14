@@ -47,17 +47,16 @@ async def download_files():
     return {"message": f"Documents downloaded from Firebase Storage and saved to {destination_path}."}
 
 
+
 async def exrt(filename,textinput):
     nltk.download('stopwords')
-    from nltk.corpus import stopwords
-    stop = stopwords.words('english')
     nltk.download('punkt')
     nltk.download('averaged_perceptron_tagger')
     nltk.download('maxent_ne_chunker')
     nltk.download('words')
-
-
-
+   
+    from nltk.corpus import stopwords
+    stop = stopwords.words('english')
     nlp = en_core_web_sm.load()
     matcher = Matcher(nlp.vocab)
     def extract_name(resume_text):
@@ -212,35 +211,46 @@ input_dir2='./senior_engineer'
 
 
 
+last_modified_time = 0  # initialize to zero or some default value
+
 async def process():
+    global last_modified_time
     for filename in os.listdir(input_dir):
         file_path = os.path.join(input_dir, filename)
         if os.path.isfile(file_path):
-            if file_path.lower().endswith(('.png', '.docx')):
-                print(f"{filename} is not supported")
-            elif file_path.lower().endswith('.pdf'):
-                textinput = pdftotext(file_path)
-                await exrt(filename,textinput)
+            if os.path.getmtime(file_path) > last_modified_time:
+                if file_path.lower().endswith(('.png', '.docx')):
+                    print(f"{filename} is not supported")
+                elif file_path.lower().endswith('.pdf'):
+                    textinput = pdftotext(file_path)
+                    await exrt(filename,textinput)
+                last_modified_time = os.path.getmtime(file_path)
 
 async def process1():
+    global last_modified_time
     for filename in os.listdir(input_dir1):
         file_path = os.path.join(input_dir1, filename)
         if os.path.isfile(file_path):
-            if file_path.lower().endswith(('.png', '.docx')):
-                print(f"{filename} is not supported")
-            elif file_path.lower().endswith('.pdf'):
-                textinput = pdftotext(file_path)
-                await exrt(filename,textinput)
+            if os.path.getmtime(file_path) > last_modified_time:
+                if file_path.lower().endswith(('.png', '.docx')):
+                    print(f"{filename} is not supported")
+                elif file_path.lower().endswith('.pdf'):
+                    textinput = pdftotext(file_path)
+                    await exrt(filename,textinput)
+                last_modified_time = os.path.getmtime(file_path)
 
 async def process2():
+    global last_modified_time
     for filename in os.listdir(input_dir2):
         file_path = os.path.join(input_dir2, filename)
         if os.path.isfile(file_path):
-            if file_path.lower().endswith(('.png', '.docx')):
-                print(f"{filename} is not supported")
-            elif file_path.lower().endswith('.pdf'):
-                textinput = pdftotext(file_path)
-                await exrt(filename,textinput)
+            if os.path.getmtime(file_path) > last_modified_time:
+                if file_path.lower().endswith(('.png', '.docx')):
+                    print(f"{filename} is not supported")
+                elif file_path.lower().endswith('.pdf'):
+                    textinput = pdftotext(file_path)
+                    await exrt(filename,textinput)
+                last_modified_time = os.path.getmtime(file_path)
 
 
 
@@ -344,7 +354,7 @@ async def postgre():
                 continue
         
         # Insert the data into the PostgreSQL table
-            cur.execute("INSERT INTO shire (name, qualifications, skills, mobile_number, mail_ids,github,linkedin,scores) VALUES (%s, %s, %s, %s, %s,%s,%s, %s)" , (name, qualifications, skills, mobile_number, mail_ids,github,linkedin,scores))
+            cur.execute("INSERT INTO shire (name, qualifications, skills, mobile_number, mail_ids,github,linkedin,scores) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)" , (name, qualifications, skills, mobile_number, mail_ids,github,linkedin,scores))
             print(f"Inserted {filename} into the database.")
         
 # Commit the changes to the database
