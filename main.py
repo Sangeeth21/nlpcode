@@ -363,48 +363,6 @@ async def postgre():
     print("Data insertion complete!")
 
 
-async def postgre1():
-    conn = psycopg2.connect(host="localhost", database="postgres", user="postgres", password="sangeeth")
-
-    # Open a cursor to execute SQL commands
-    cur = conn.cursor()
-
-    # Loop through each JSON file in the folder
-    folder_path = "./FLASK/success"
-    for filename in os.listdir(folder_path):
-        if filename.endswith(".json"):
-            # Load the JSON data from the file
-            filepath = os.path.join(folder_path, filename)
-            with open(filepath) as f:
-                data = json.load(f)
-            
-            cur.execute("SELECT id FROM shire")
-            shire_id = cur.fetchone()[0]
-
-            user_info = data['user_info']
-
-            # Insert user information into 'users' table
-            user_query = "INSERT INTO users (login, url, name, company, location, email, bio, twitter_username, public_repos, followers, following, created_at, updated_at,shire_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-            user_data = (user_info['login'], user_info['url'], user_info['name'], user_info['company'], user_info['location'], user_info['email'], user_info['bio'], user_info['twitter_username'], user_info['public_repos'], user_info['followers'], user_info['following'], user_info['created_at'], user_info['updated_at'], shire_id)
-            cur.execute(user_query, user_data)
-
-            # Extract repository information
-            repos = data['repos']
-
-            # Insert repository information into 'repos' table
-            for repo in repos:
-                repo_query = "INSERT INTO repos (name, full_name, private, description, url, commits_url, created_at, updated_at, pushed_at, clone_url, size, watchers_count, language, owner_name, owner_url, shire_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                repo_data = (repo['name'], repo['full_name'], repo['private'], repo['description'], repo['url'], repo['commits_url'], repo['created_at'], repo['updated_at'], repo['pushed_at'], repo['clone_url'], repo['size'], repo['watchers_count'], repo['language'], repo['owner_name'], repo['owner_url'], shire_id)
-                cur.execute(repo_query, repo_data)
-
-            # Commit the changes to the database
-            conn.commit()
-
-    # Close the cursor and database connection
-    cur.close()
-    conn.close()
-    print("Connected!")
-
 async def postgretofire():
     conn = psycopg2.connect(
     host="localhost",
@@ -446,7 +404,6 @@ async def main():
                 await matching()
                 await gitfetch()
                 await postgre()
-                await postgre1()
                 await postgretofire()
                 last_files[folder] = current_files
         await asyncio.sleep(5)
